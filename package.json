@@ -1,6 +1,6 @@
 {
   "name": "@modulane/dev-workspace-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "An interactive CLI for browsing development projects and running npm scripts.",
   "type": "module",
   "bin": {
