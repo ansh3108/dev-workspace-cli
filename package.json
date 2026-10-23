@@ -1,5 +1,5 @@
 {
-  "name": "dev-workspace-cli",
+  "name": "@modulane/dev-workspace-cli",
   "version": "0.1.0",
   "description": "An interactive CLI for browsing development projects and running npm scripts.",
   "type": "module",
@@ -28,6 +28,17 @@
     "node": ">=20"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/modulane/dev-workspace-cli.git"
+  },
+  "homepage": "https://github.com/modulane/dev-workspace-cli#readme",
+  "bugs": {
+    "url": "https://github.com/modulane/dev-workspace-cli/issues"
+  },
   "dependencies": {
     "@inquirer/prompts": "^8.7.4",
     "cross-spawn": "^7.0.6"

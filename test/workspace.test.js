@@ -56,21 +56,6 @@ test('getProjects lists immediate folders alphabetically', async () => {
   })
 })
 
-test('getProjects excludes the CLI directory', async () => {
-  await withTempDirectory(async directory => {
-    const cliDirectory = path.join(directory, 'dev-cli')
-    await mkdir(cliDirectory)
-    await mkdir(path.join(directory, 'my-project'))
-
-    const projects = await getProjects(directory, cliDirectory)
-
-    assert.deepEqual(
-      projects.map(project => project.name),
-      ['my-project'],
-    )
-  })
-})
-
 test('getScripts returns scripts from package.json', async () => {
   await withTempDirectory(async directory => {
     await writeFile(

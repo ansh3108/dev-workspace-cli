@@ -38,3 +38,6 @@ Desktop.ini
 # Local environment and tooling
 .npm/
 .eslintcache
+
+# Generated npm package archives
+*.tgz
