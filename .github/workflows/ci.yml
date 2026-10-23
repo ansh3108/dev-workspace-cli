@@ -5,6 +5,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Node ${{ matrix.node-version }} / ${{ matrix.os }}
@@ -37,7 +40,7 @@ jobs:
 
       - name: Run checks and tests
         run: npm run check
-        
+
   coverage:
     name: Code coverage
     runs-on: ubuntu-latest
@@ -58,9 +61,30 @@ jobs:
       - name: Run tests with coverage
         run: npm run coverage
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v7
+      - name: Generate coverage badge
+        run: node scripts/generate-coverage-badge.js
+
+      - name: Upload Pages artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/lcov.info
-          fail_ci_if_error: true
+          path: public
+
+  deploy-badge:
+    name: Deploy coverage badge
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: coverage
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

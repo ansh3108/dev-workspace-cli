@@ -4,7 +4,7 @@
   "description": "An interactive CLI for browsing development projects and running npm scripts.",
   "type": "module",
   "bin": {
-    "dev-workspace": "./index.js"
+    "dev-workspace": "index.js"
   },
   "files": [
     "index.js",
@@ -14,7 +14,7 @@
     "start": "node index.js",
     "test": "node --test",
     "check": "node --check index.js && node --check lib/cli.js && node --check lib/config.js && node --check lib/workspace.js && node --check lib/commands.js && node --check lib/prompts.js && node --check lib/ui.js && npm test",
-    "coverage": "c8 --all --include=lib --check-coverage --lines 80 --statements 80 --reporter=text --reporter=lcov node --test",
+    "coverage": "c8 --all --include=lib --check-coverage --lines 80 --statements 80 --reporter=text --reporter=lcov --reporter=json-summary node --test",
     "prepublishOnly": "npm run check"
   },
   "keywords": [
@@ -34,7 +34,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/modulane/dev-workspace-cli.git"
+    "url": "git+https://github.com/modulane/dev-workspace-cli.git"
   },
   "homepage": "https://github.com/modulane/dev-workspace-cli#readme",
   "bugs": {
