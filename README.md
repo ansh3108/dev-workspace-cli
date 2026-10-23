@@ -21,7 +21,7 @@ An interactive command-line tool for browsing your development workspace and run
 Install globally using npm:
 
 ```bash
-npm install --global dev-workspace-cli
+npm install --global @modulane/dev-workspace-cli
 ```
 
 Launch the CLI:
