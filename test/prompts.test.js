@@ -1,3 +1,4 @@
+
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createPrompts } from '../lib/prompts.js'
@@ -66,31 +67,25 @@ test('chooseProject maps projects and adds an exit choice', async () => {
         { name: 'project-b', directory: '/projects/b' },
     ]
     const { calls, prompts } = createPromptMocks({
-        select: projects[0].value,
+        select: projects[0],
     })
 
     const result = await prompts.chooseProject(projects)
 
-    assert.equal(result, projects[0].value)
+    assert.equal(result, projects[0])
     assert.deepEqual(calls.select[0], {
-        message: 'Select a project:',
+        message: 'Select a project',
         choices: [
             {
-                name: 'project-a',
-                value: {
-                    name: 'project-a',
-                    directory: '/projects/a',
-                },
+                name: '📁  project-a',
+                value: projects[0],
             },
             {
-                name: 'project-b',
-                value: {
-                    name: 'project-b',
-                    directory: '/projects/b',
-                },
+                name: '📁  project-b',
+                value: projects[1],
             },
             {
-                name: 'Exit',
+                name: '↩  Exit',
                 value: null,
             },
         ],
@@ -106,7 +101,7 @@ test('chooseProject supports an empty project list', async () => {
 
     assert.equal(result, null)
     assert.deepEqual(calls.select[0].choices, [
-        { name: 'Exit', value: null },
+        { name: '↩  Exit', value: null },
     ])
 })
 
@@ -121,11 +116,22 @@ test('chooseScript formats scripts and adds a back choice', async () => {
 
     assert.equal(result, scripts[0])
     assert.deepEqual(calls.select[0], {
-        message: 'Select a script to run:',
+        message: 'Select a script',
         choices: [
-            { name: 'dev - (nuxt dev)', value: scripts[0] },
-            { name: 'build - (nuxt build)', value: scripts[1] },
-            { name: 'Back to projects', value: null },
+            {
+                name: '▶  dev',
+                value: scripts[0],
+                description: 'nuxt dev',
+            },
+            {
+                name: '▶  build',
+                value: scripts[1],
+                description: 'nuxt build',
+            },
+            {
+                name: '↩  Back to projects',
+                value: null,
+            },
         ],
         pageSize: 15,
         loop: false,
@@ -139,7 +145,7 @@ test('chooseScript supports an empty script list', async () => {
 
     assert.equal(result, null)
     assert.deepEqual(calls.select[0].choices, [
-        { name: 'Back to projects', value: null },
+        { name: '↩  Back to projects', value: null },
     ])
 })
 
@@ -151,7 +157,7 @@ test('waitForBack uses its default message', async () => {
     assert.equal(result, true)
     assert.deepEqual(calls.select[0], {
         message: 'Return to projects',
-        choices: [{ name: 'Back', value: true }],
+        choices: [{ name: '↩  Back', value: true }],
     })
 })
 
@@ -172,7 +178,7 @@ test('waitAfterCommand offers a return to project scripts', async () => {
     assert.deepEqual(calls.select[0], {
         message: 'What next?',
         choices: [
-            { name: 'Return to project scripts', value: true },
+            { name: '↩  Return to project scripts', value: true },
         ],
     })
 })
