@@ -1,4 +1,4 @@
-[![CI](https://github.com/modulane/actions/workflows/ci.yml/badge.svg)](https://github.com/modulane/actions/workflows/ci.yml)
+[![CI](https://github.com/modulane/dev-workspace-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/modulane/dev-workspace-cli/actions/workflows/ci.yml)
 ![Coverage](https://modulane.github.io/dev-workspace-cli/coverage.svg)
 [![npm version](https://img.shields.io/npm/v/@modulane/dev-workspace-cli)](https://www.npmjs.com/package/@modulane/dev-workspace-cli)
 
