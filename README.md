@@ -1,3 +1,7 @@
+[![CI](https://github.com/OWNER/REPOSITORY/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPOSITORY/actions/workflows/ci.yml)
+![Coverage](https://OWNER.github.io/REPOSITORY/coverage.svg)
+[![npm version](https://img.shields.io/npm/v/@modulane/dev-workspace-cli)](https://www.npmjs.com/package/@modulane/dev-workspace-cli)
+
 # Dev Workspace CLI
 
 An interactive command-line tool for browsing your development workspace and running npm scripts without manually navigating between project folders.
