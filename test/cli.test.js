@@ -418,3 +418,48 @@ test('CLI handles errors when starting a command', async () => {
     ),
   )
 })
+
+test('CLI treats prompt abortion as a normal exit', async () => {
+  const abortion = Object.assign(
+    new Error('Prompt aborted'),
+    { name: 'AbortPromptError' },
+  )
+
+  const { dependencies, calls } = createDependencies({
+    prompts: {
+      chooseProject: async () => {
+        throw abortion
+      },
+    },
+    workspace: {
+      getProjects: async () => [
+        { name: 'example', directory: '/fake/workspace/example' },
+      ],
+    },
+  })
+
+  await assert.doesNotReject(
+    createCli(dependencies).start(),
+  )
+
+  assert.ok(
+    calls.logs.some(args =>
+      args.join(' ').includes('Goodbye!'),
+    ),
+  )
+})
+
+test('CLI propagates unexpected errors', async () => {
+  const { dependencies } = createDependencies({
+    ui: {
+      printHeader: () => {
+        throw new Error('Unexpected UI failure')
+      },
+    },
+  })
+
+  await assert.rejects(
+    createCli(dependencies).start(),
+    /Unexpected UI failure/,
+  )
+})

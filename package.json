@@ -14,6 +14,7 @@
     "start": "node index.js",
     "test": "node --test",
     "check": "node --check index.js && node --check lib/cli.js && node --check lib/config.js && node --check lib/workspace.js && node --check lib/commands.js && node --check lib/prompts.js && node --check lib/ui.js && npm test",
+    "coverage": "c8 --all --include=lib --check-coverage --lines 80 --statements 80 --reporter=text --reporter=lcov node --test",
     "prepublishOnly": "npm run check"
   },
   "keywords": [
@@ -42,5 +43,8 @@
   "dependencies": {
     "@inquirer/prompts": "^8.7.4",
     "cross-spawn": "^7.0.6"
+  },
+  "devDependencies": {
+    "c8": "^12.0.0"
   }
 }

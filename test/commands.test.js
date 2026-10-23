@@ -132,3 +132,25 @@ test('runCommand supports a custom npm executable', async () => {
 
   assert.deepEqual(await resultPromise, { code: 0 })
 })
+
+test('runCommand wraps startup errors without an error code', async () => {
+  const child = createFakeProcess()
+  const { spawnMock } = createSpawnMock(child)
+
+  const resultPromise = runCommand('dev', '/projects/example', {
+    spawnProcess: spawnMock,
+  })
+
+  const originalError = new Error('Unexpected startup failure')
+
+  child.emit('error', originalError)
+
+  await assert.rejects(resultPromise, error => {
+    assert.match(
+      error.message,
+      /Could not start npm: Unexpected startup failure/,
+    )
+    assert.equal(error.cause, originalError)
+    return true
+  })
+})

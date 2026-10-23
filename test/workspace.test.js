@@ -121,6 +121,36 @@ test('getScripts rejects a non-object scripts field', async () => {
   })
 })
 
+test('getScripts wraps errors when package.json cannot be read', async () => {
+  await withTempDirectory(async directory => {
+    await mkdir(path.join(directory, 'package.json'))
+
+    await assert.rejects(
+      getScripts(directory),
+      error => {
+        assert.match(error.message, /Cannot read .*package\.json/)
+        assert.ok(error.cause)
+        return true
+      },
+    )
+  })
+})
+
+test('getScripts rejects package.json values that are not objects', async () => {
+  await withTempDirectory(async directory => {
+    const packagePath = path.join(directory, 'package.json')
+
+    for (const content of ['null', '[]', '"not an object"', '42']) {
+      await writeFile(packagePath, content)
+
+      await assert.rejects(
+        getScripts(directory),
+        /expected a JSON object/,
+      )
+    }
+  })
+})
+
 test('getProjects rejects a missing workspace', async () => {
   await withTempDirectory(async directory => {
     await assert.rejects(
@@ -131,3 +161,4 @@ test('getProjects rejects a missing workspace', async () => {
     )
   })
 })
+
