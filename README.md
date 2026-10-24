@@ -4,7 +4,7 @@
 
 # Dev Workspace CLI
 
-An interactive command-line tool for browsing your development workspace and running npm scripts without manually navigating between project folders.
+An interactive command-line tool for browsing your development workspace and running their scripts without manually navigating between project folders.
 
 ## Features
 
@@ -72,7 +72,17 @@ For example, a project with the following scripts:
 
 will expose `dev`, `build`, and `test` in the project menu.
 
-Scripts are executed through npm from the selected project's directory, so relative paths and project-local dependencies resolve in the appropriate context.
+Scripts run from the selected project's directory, so relative paths and project-local dependencies resolve in the appropriate context.
+
+## Package managers
+
+Each project's scripts run with the package manager the project uses. The CLI decides in this order:
+
+1. the `packageManager` field in `package.json`, for example `"packageManager": "pnpm@9.1.0"`;
+2. the lockfile in the project folder: `pnpm-lock.yaml` (pnpm), `yarn.lock` (Yarn), `bun.lock` or `bun.lockb` (Bun), `package-lock.json` or `npm-shrinkwrap.json` (npm);
+3. npm, when neither is present.
+
+The project screen shows which tool will be used and why, for example `Package manager: pnpm (from pnpm-lock.yaml)`. If that tool is not installed, the CLI says so and explains how to install it.
 
 To switch to another workspace later, choose **Change workspace** in the project list, or start the CLI with `--workspace <path>`.
 
@@ -181,7 +191,6 @@ The workflow can also be started by hand from the Actions tab.
 
 - The CLI discovers immediate subdirectories rather than recursively searching for projects.
 - A project must have a `package.json` with a `scripts` object to expose npm scripts.
-- The CLI currently focuses on npm scripts; it does not automatically select pnpm, Yarn, or other package managers.
 - Project scripts execute with the permissions of the current user. Only run scripts from projects you trust.
 
 See the [roadmap](ROADMAP.md) for the features planned up to version 1.0.0.

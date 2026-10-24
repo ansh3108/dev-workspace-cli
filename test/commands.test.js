@@ -142,20 +142,49 @@ test('runCommand wraps other process startup errors', async () => {
   })
 })
 
-test('runCommand supports a custom npm executable', async () => {
-  const child = createFakeProcess()
-  const { spawnMock, calls } = createSpawnMock(child)
+test('runCommand runs the script with the given package manager', async () => {
+  for (const packageManager of ['pnpm', 'yarn', 'bun']) {
+    const child = createFakeProcess()
+    const { spawnMock, calls } = createSpawnMock(child)
 
-  const resultPromise = runCommand('test', '/projects/example', {
-    spawnProcess: spawnMock,
-    npmCommand: 'custom-npm',
-  })
+    const resultPromise = runCommand('test', '/projects/example', {
+      spawnProcess: spawnMock,
+      packageManager,
+    })
 
-  assert.equal(calls[0][0], 'custom-npm')
+    assert.equal(calls[0][0], packageManager)
+    assert.deepEqual(calls[0][1], ['run', 'test'])
 
-  child.emit('close', 0, null)
+    child.emit('close', 0, null)
 
-  assert.deepEqual(await resultPromise, { code: 0 })
+    assert.deepEqual(await resultPromise, { code: 0 })
+  }
+})
+
+test('runCommand explains how to install a missing package manager', async () => {
+  const cases = [
+    [
+      'pnpm',
+      /Could not find pnpm, which this project uses\..*corepack enable pnpm/,
+    ],
+    ['yarn', /corepack enable yarn/],
+    ['bun', /https:\/\/bun\.sh/],
+    ['custom', /Install it, then restart the CLI/],
+  ]
+
+  for (const [packageManager, expected] of cases) {
+    const child = createFakeProcess()
+    const { spawnMock } = createSpawnMock(child)
+
+    const resultPromise = runCommand('dev', '/projects/example', {
+      spawnProcess: spawnMock,
+      packageManager,
+    })
+
+    child.emit('error', Object.assign(new Error('ENOENT'), { code: 'ENOENT' }))
+
+    await assert.rejects(resultPromise, expected)
+  }
 })
 
 test('runCommand wraps startup errors without an error code', async () => {

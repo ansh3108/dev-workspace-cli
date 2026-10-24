@@ -1,7 +1,7 @@
 {
   "name": "@modulane/dev-workspace-cli",
   "version": "0.0.0-development",
-  "description": "An interactive CLI for browsing development projects and running npm scripts.",
+  "description": "An interactive CLI for browsing development projects and running their scripts with npm, pnpm, Yarn or Bun.",
   "type": "module",
   "bin": {
     "dev-workspace": "index.js",

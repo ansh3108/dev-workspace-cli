@@ -47,6 +47,7 @@ function createDependencies(overrides = {}) {
         return []
       },
       getScripts: async () => [],
+      detectPackageManager: async () => ({ name: 'npm', source: 'default' }),
     },
 
     commands: {
@@ -240,7 +241,7 @@ test('CLI handles a project with no npm scripts', async () => {
   await createCli(dependencies).run()
 
   assert.ok(
-    calls.logs.some(args => args.join(' ').includes('No npm scripts found')),
+    calls.logs.some(args => args.join(' ').includes('No scripts found')),
   )
 })
 
@@ -715,4 +716,77 @@ test('CLI --reset also deletes custom aliases', async () => {
 
   assert.match(loggedText(calls), /No saved configuration found/)
   assert.match(loggedText(calls), /Deleted alias "dev"/)
+})
+
+test('CLI runs scripts with the detected package manager', async () => {
+  const project = {
+    name: 'example',
+    directory: path.join(WORKSPACE, 'example'),
+  }
+  const script = { name: 'dev', command: 'vite' }
+  const runs = []
+  let scriptSelections = 0
+  let projectSelections = 0
+
+  const { dependencies, calls } = createDependencies({
+    workspace: {
+      getProjects: async () => [project],
+      getScripts: async () => [script],
+      detectPackageManager: async () => ({
+        name: 'pnpm',
+        source: 'pnpm-lock.yaml',
+      }),
+    },
+    prompts: {
+      chooseProject: async () => (++projectSelections === 1 ? project : null),
+      chooseScript: async () => (++scriptSelections === 1 ? script : null),
+    },
+    commands: {
+      runCommand: async (...args) => {
+        runs.push(args)
+        return { code: 0 }
+      },
+    },
+  })
+
+  await createCli(dependencies).run()
+
+  assert.deepEqual(runs, [
+    ['dev', project.directory, { packageManager: 'pnpm' }],
+  ])
+  assert.match(
+    loggedText(calls),
+    /Package manager: pnpm \(from pnpm-lock\.yaml\)/,
+  )
+  assert.match(loggedText(calls), /Running: pnpm run dev/)
+})
+
+test('CLI explains where the package manager choice comes from', async () => {
+  const cases = [
+    [
+      { name: 'yarn', source: 'packageManager' },
+      /yarn \(from the packageManager field\)/,
+    ],
+    [{ name: 'npm', source: 'default' }, /npm \(default\)/],
+  ]
+
+  for (const [detected, expected] of cases) {
+    const project = { name: 'p', directory: path.join(WORKSPACE, 'p') }
+    let projectSelections = 0
+
+    const { dependencies, calls } = createDependencies({
+      workspace: {
+        getProjects: async () => [project],
+        getScripts: async () => [{ name: 'dev', command: 'vite' }],
+        detectPackageManager: async () => detected,
+      },
+      prompts: {
+        chooseProject: async () => (++projectSelections === 1 ? project : null),
+      },
+    })
+
+    await createCli(dependencies).run()
+
+    assert.match(loggedText(calls), expected)
+  }
 })

@@ -37,8 +37,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # The tests run a real script with every supported package manager.
+      - name: Install pnpm and Yarn
+        run: npm install --global pnpm yarn
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Run checks and tests
         run: npm run check
+        env:
+          REQUIRE_ALL_PACKAGE_MANAGERS: '1'
 
   coverage:
     name: Code coverage
