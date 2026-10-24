@@ -163,6 +163,20 @@ Run the complete local verification command:
 npm run check
 ```
 
+### Releasing
+
+Releases are automatic. When CI passes for a push to `main`, the Release workflow runs [semantic-release](https://semantic-release.gitbook.io/), which reads the commit messages since the last release:
+
+| Commit message                                  | Result                        |
+| ----------------------------------------------- | ----------------------------- |
+| `fix: …`                                        | Patch release (0.3.0 → 0.3.1) |
+| `feat: …`                                       | Minor release (0.3.0 → 0.4.0) |
+| `docs: …`, `style: …`, `chore: …`, `test: …`, … | No release                    |
+
+It then publishes the package to npm, creates the git tag and a GitHub release with generated notes. The version in `package.json` stays `0.0.0-development`; the real version only exists in git tags and on npm.
+
+The workflow can also be started by hand from the Actions tab.
+
 ## Limitations
 
 - The CLI discovers immediate subdirectories rather than recursively searching for projects.
