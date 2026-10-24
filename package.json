@@ -13,9 +13,11 @@
   "scripts": {
     "start": "node index.js",
     "test": "node --test",
-    "check": "node --check index.js && node --check lib/cli.js && node --check lib/config.js && node --check lib/workspace.js && node --check lib/commands.js && node --check lib/prompts.js && node --check lib/ui.js && npm test",
+    "check": "npm run format:check && npm test",
     "coverage": "c8 --all --include=lib --check-coverage --lines 80 --statements 80 --reporter=text --reporter=lcov --reporter=json-summary node --test",
-    "prepublishOnly": "npm run check"
+    "prepublishOnly": "npm run check",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "keywords": [
     "cli",
@@ -46,6 +48,7 @@
   },
   "devDependencies": {
     "c8": "^12.0.0",
+    "prettier": "3.9.10",
     "semantic-release": "^25.0.9"
   }
 }

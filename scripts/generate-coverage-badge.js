@@ -1,4 +1,3 @@
-
 import { readFile, mkdir, writeFile } from 'node:fs/promises'
 
 const summary = JSON.parse(
@@ -9,9 +8,7 @@ const percentage = summary.total.lines.pct
 const value = `${percentage.toFixed(2)}%`
 
 const color =
-  percentage >= 90 ? '#4c1' :
-  percentage >= 80 ? '#dfb317' :
-  '#e05d44'
+  percentage >= 90 ? '#4c1' : percentage >= 80 ? '#dfb317' : '#e05d44'
 
 const labelWidth = 74
 const valueWidth = Math.max(36, value.length * 7 + 12)

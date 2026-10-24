@@ -1,25 +1,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {
-  mkdtemp,
-  mkdir,
-  rm,
-  writeFile,
-} from 'node:fs/promises'
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
-import {
-  isDirectory,
-  getProjects,
-  getScripts,
-} from '../lib/workspace.js'
+import { isDirectory, getProjects, getScripts } from '../lib/workspace.js'
 
 // Each test gets its own isolated temporary directory.
 async function withTempDirectory(callback) {
-  const directory = await mkdtemp(
-    path.join(os.tmpdir(), 'dev-workspace-test-'),
-  )
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'dev-workspace-test-'))
 
   try {
     await callback(directory)
@@ -31,10 +20,7 @@ async function withTempDirectory(callback) {
 test('isDirectory recognizes directories and rejects missing paths', async () => {
   await withTempDirectory(async directory => {
     assert.equal(await isDirectory(directory), true)
-    assert.equal(
-      await isDirectory(path.join(directory, 'missing')),
-      false,
-    )
+    assert.equal(await isDirectory(path.join(directory, 'missing')), false)
   })
 })
 
@@ -44,10 +30,7 @@ test('getProjects lists immediate folders alphabetically', async () => {
     await mkdir(path.join(directory, 'alpha'))
     await writeFile(path.join(directory, 'notes.txt'), 'Not a project')
 
-    const projects = await getProjects(
-      directory,
-      path.join(directory, 'cli'),
-    )
+    const projects = await getProjects(directory, path.join(directory, 'cli'))
 
     assert.deepEqual(
       projects.map(project => project.name),
@@ -95,10 +78,7 @@ test('getScripts returns an empty array when scripts are absent', async () => {
 
 test('getScripts rejects malformed JSON', async () => {
   await withTempDirectory(async directory => {
-    await writeFile(
-      path.join(directory, 'package.json'),
-      '{ invalid json',
-    )
+    await writeFile(path.join(directory, 'package.json'), '{ invalid json')
 
     await assert.rejects(
       getScripts(directory),
@@ -114,10 +94,7 @@ test('getScripts rejects a non-object scripts field', async () => {
       JSON.stringify({ scripts: ['not', 'an', 'object'] }),
     )
 
-    await assert.rejects(
-      getScripts(directory),
-      /"scripts" must be an object/,
-    )
+    await assert.rejects(getScripts(directory), /"scripts" must be an object/)
   })
 })
 
@@ -125,14 +102,11 @@ test('getScripts wraps errors when package.json cannot be read', async () => {
   await withTempDirectory(async directory => {
     await mkdir(path.join(directory, 'package.json'))
 
-    await assert.rejects(
-      getScripts(directory),
-      error => {
-        assert.match(error.message, /Cannot read .*package\.json/)
-        assert.ok(error.cause)
-        return true
-      },
-    )
+    await assert.rejects(getScripts(directory), error => {
+      assert.match(error.message, /Cannot read .*package\.json/)
+      assert.ok(error.cause)
+      return true
+    })
   })
 })
 
@@ -143,10 +117,7 @@ test('getScripts rejects package.json values that are not objects', async () => 
     for (const content of ['null', '[]', '"not an object"', '42']) {
       await writeFile(packagePath, content)
 
-      await assert.rejects(
-        getScripts(directory),
-        /expected a JSON object/,
-      )
+      await assert.rejects(getScripts(directory), /expected a JSON object/)
     }
   })
 })
@@ -154,11 +125,7 @@ test('getScripts rejects package.json values that are not objects', async () => 
 test('getProjects rejects a missing workspace', async () => {
   await withTempDirectory(async directory => {
     await assert.rejects(
-      getProjects(
-        path.join(directory, 'missing'),
-        directory,
-      ),
+      getProjects(path.join(directory, 'missing'), directory),
     )
   })
 })
-

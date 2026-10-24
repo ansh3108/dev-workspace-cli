@@ -1,4 +1,3 @@
-
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createUi } from '../lib/ui.js'
@@ -30,42 +29,42 @@ test('color returns plain text for an unknown shade', () => {
 })
 
 test('printHeader logs the default section and workspace', () => {
-    const lines = []
-    const { printHeader } = createUi({
-        useColors: false,
-        log: (...args) => lines.push(args.join(' ')),
-    })
+  const lines = []
+  const { printHeader } = createUi({
+    useColors: false,
+    log: (...args) => lines.push(args.join(' ')),
+  })
 
-    printHeader('/projects')
+  printHeader('/projects')
 
-    assert.ok(lines.some(line => line.includes('DEV WORKSPACE CLI')))
-    assert.ok(lines.some(line => line.includes('DEVELOPER TOOLKIT')))
-    assert.ok(lines.some(line => line.includes('WORKSPACE')))
-    assert.ok(lines.some(line => line.includes('/projects')))
-    assert.ok(lines.some(line => line.includes('PROJECT EXPLORER')))
+  assert.ok(lines.some(line => line.includes('DEV WORKSPACE CLI')))
+  assert.ok(lines.some(line => line.includes('DEVELOPER TOOLKIT')))
+  assert.ok(lines.some(line => line.includes('WORKSPACE')))
+  assert.ok(lines.some(line => line.includes('/projects')))
+  assert.ok(lines.some(line => line.includes('PROJECT EXPLORER')))
 })
 
 test('printHeader supports a custom section', () => {
-    const lines = []
-    const { printHeader } = createUi({
-        useColors: false,
-        log: (...args) => lines.push(args.join(' ')),
-    })
+  const lines = []
+  const { printHeader } = createUi({
+    useColors: false,
+    log: (...args) => lines.push(args.join(' ')),
+  })
 
-    printHeader('/projects', 'PROJECT SCRIPTS')
+  printHeader('/projects', 'PROJECT SCRIPTS')
 
-    assert.ok(lines.some(line => line.includes('PROJECT SCRIPTS')))
+  assert.ok(lines.some(line => line.includes('PROJECT SCRIPTS')))
 })
 
 test('printHeader applies colors when enabled', () => {
-    const lines = []
-    const { printHeader } = createUi({
-        useColors: true,
-        log: (...args) => lines.push(args.join(' ')),
-    })
+  const lines = []
+  const { printHeader } = createUi({
+    useColors: true,
+    log: (...args) => lines.push(args.join(' ')),
+  })
 
-    printHeader('/projects')
+  printHeader('/projects')
 
-    assert.ok(lines.some(line => line.includes('\x1b[36m')))
-    assert.ok(lines.some(line => line.includes('\x1b[0m')))
+  assert.ok(lines.some(line => line.includes('\x1b[36m')))
+  assert.ok(lines.some(line => line.includes('\x1b[0m')))
 })
