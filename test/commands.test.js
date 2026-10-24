@@ -6,43 +6,70 @@ import { runCommand } from '../lib/commands.js'
 
 // Create a fake child process whose events can be triggered by each test.
 function createFakeProcess() {
-    const child = new EventEmitter()
+  const child = new EventEmitter()
 
-    return child
+  return child
 }
 
 // Run the command with a fake process and return the captured spawn call.
 function createSpawnMock(child) {
-    const calls = []
+  const calls = []
 
-    function spawnMock(...args) {
-        calls.push(args)
-        return child
-    }
+  function spawnMock(...args) {
+    calls.push(args)
+    return child
+  }
 
-    return { spawnMock, calls}
+  return { spawnMock, calls }
 }
 
 test('runCommand launches the selected npm script in the project directory', async () => {
+  const child = createFakeProcess()
+  const { spawnMock, calls } = createSpawnMock(child)
+
+  const resultPromise = runCommand('dev', '/projects/example', {
+    spawnProcess: spawnMock,
+  })
+
+  assert.equal(calls.length, 1)
+
+  const [command, args, options] = calls[0]
+
+  assert.equal(command, 'npm')
+  assert.deepEqual(args, ['run', 'dev'])
+  assert.equal(options.cwd, '/projects/example')
+  assert.equal(options.stdio, 'inherit')
+  assert.equal('shell' in options, false)
+
+  child.emit('close', 0, null)
+
+  assert.deepEqual(await resultPromise, { code: 0 })
+})
+
+test('runCommand ignores Ctrl+C in the CLI while the command runs', async () => {
+  for (const ending of ['close', 'error']) {
     const child = createFakeProcess()
-    const { spawnMock, calls } = createSpawnMock(child)
+    const signals = new EventEmitter()
+    const { spawnMock } = createSpawnMock(child)
 
-    const resultPromise = runCommand('dev', '/projects/example', { spawnProcess: spawnMock })
+    const resultPromise = runCommand('dev', '/projects/example', {
+      spawnProcess: spawnMock,
+      signals,
+    })
 
-    assert.equal(calls.length, 1)
+    assert.equal(signals.listenerCount('SIGINT'), 1)
 
-    const [command, args, options] = calls[0]
+    if (ending === 'close') {
+      child.emit('close', null, 'SIGINT')
+      await resultPromise
+    } else {
+      child.emit('error', new Error('failed'))
+      await assert.rejects(resultPromise)
+    }
 
-    assert.equal(command, 'npm')
-    assert.deepEqual(args, ['run', 'dev'])
-    assert.equal(options.cwd, '/projects/example')
-    assert.equal(options.stdio, 'inherit')
-    assert.equal('shell' in options, false)
-
-    child.emit('close', 0, null)
-
-    assert.deepEqual(await resultPromise, { code: 0 })
-}) 
+    assert.equal(signals.listenerCount('SIGINT'), 0)
+  }
+})
 
 test('runCommand returns a non-zero exit code when a script fails', async () => {
   const child = createFakeProcess()
@@ -81,10 +108,9 @@ test('runCommand provides an actionable error when npm cannot be found', async (
     spawnProcess: spawnMock,
   })
 
-  const originalError = Object.assign(
-    new Error('spawn npm ENOENT'),
-    { code: 'ENOENT' },
-  )
+  const originalError = Object.assign(new Error('spawn npm ENOENT'), {
+    code: 'ENOENT',
+  })
 
   child.emit('error', originalError)
 
@@ -103,10 +129,9 @@ test('runCommand wraps other process startup errors', async () => {
     spawnProcess: spawnMock,
   })
 
-  const originalError = Object.assign(
-    new Error('Permission denied'),
-    { code: 'EACCES' },
-  )
+  const originalError = Object.assign(new Error('Permission denied'), {
+    code: 'EACCES',
+  })
 
   child.emit('error', originalError)
 
