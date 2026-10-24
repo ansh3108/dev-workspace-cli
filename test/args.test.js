@@ -18,6 +18,17 @@ test('parseCliArgs reads long and short flags', () => {
   )
 })
 
+test('parseCliArgs reads alias options', () => {
+  assert.deepEqual(
+    { ...parseCliArgs(['--add-alias', 'dev', '--list-aliases']) },
+    { 'add-alias': 'dev', 'list-aliases': true },
+  )
+  assert.deepEqual(
+    { ...parseCliArgs(['--remove-alias=dev']) },
+    { 'remove-alias': 'dev' },
+  )
+})
+
 test('parseCliArgs explains how to get help for invalid input', () => {
   for (const args of [['--nope'], ['extra'], ['--workspace']]) {
     assert.throws(
@@ -35,6 +46,9 @@ test('HELP_TEXT documents every option', () => {
   for (const flag of [
     '--workspace',
     '--config-path',
+    '--add-alias',
+    '--remove-alias',
+    '--list-aliases',
     '--reset',
     '--version',
     '--help',

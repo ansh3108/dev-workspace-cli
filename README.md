@@ -34,6 +34,12 @@ Launch the CLI:
 dev-workspace
 ```
 
+or with the shorter built-in alias:
+
+```bash
+dws
+```
+
 ## Getting started
 
 On the first launch, the CLI asks you to select a workspace directory.
@@ -75,12 +81,34 @@ To switch to another workspace later, choose **Change workspace** in the project
 ```text
 dev-workspace [options]
 
-  -w, --workspace <path>  Use <path> as the workspace and save it
-      --config-path       Print the configuration file location
-      --reset             Delete the saved configuration
-  -v, --version           Print the version
-  -h, --help              Show this help
+  -w, --workspace <path>   Use <path> as the workspace and save it
+      --config-path        Print the configuration file location
+      --add-alias <name>   Create another command that starts the CLI
+      --remove-alias <name>
+                           Delete an alias created with --add-alias
+      --list-aliases       List the available commands
+      --reset              Delete the saved configuration and aliases
+  -v, --version            Print the version
+  -h, --help               Show this help
 ```
+
+## Aliases
+
+The CLI installs two commands: `dev-workspace` and the shorter `dws`. You can add your own names:
+
+```bash
+dws --add-alias dev
+dev
+```
+
+An alias is a small launcher file created next to the `dev-workspace` command, in the folder where your package manager installs global commands. It works immediately in every shell, including cmd, PowerShell and Git Bash on Windows.
+
+- `--list-aliases` shows every available command.
+- `--remove-alias <name>` deletes an alias.
+- A name that is already a command on your system, such as `ls` or another tool, is refused, so an alias never hides an existing program.
+- The CLI only lists or deletes launchers it created itself.
+
+Aliases need a global install. If the folder needs administrator rights (for example `/usr/local/bin`), run the command with the same rights you used to install the CLI.
 
 ## Workspace configuration
 
@@ -102,7 +130,7 @@ If the saved workspace is no longer accessible, the CLI offers to configure anot
 
 ## Uninstalling
 
-Because the configuration outlives the package, delete it before uninstalling if you want to remove every trace of the CLI:
+Because the configuration and your custom aliases outlive the package, delete them before uninstalling if you want to remove every trace of the CLI:
 
 ```bash
 dev-workspace --reset
@@ -141,6 +169,8 @@ npm run check
 - A project must have a `package.json` with a `scripts` object to expose npm scripts.
 - The CLI currently focuses on npm scripts; it does not automatically select pnpm, Yarn, or other package managers.
 - Project scripts execute with the permissions of the current user. Only run scripts from projects you trust.
+
+See the [roadmap](ROADMAP.md) for the features planned up to version 1.0.0.
 
 ## Contributing
 

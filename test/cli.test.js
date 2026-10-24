@@ -19,6 +19,13 @@ function createDependencies(overrides = {}) {
   }
 
   const dependencies = {
+    aliases: {
+      addAlias: async name => [`/fake/bin/${name}`],
+      listAliases: async () => [],
+      removeAlias: async name => [`/fake/bin/${name}`],
+      removeAllAliases: async () => [],
+    },
+
     config: {
       getConfigPaths: () => ({
         directory: '/fake/home/.dev-workspace-cli',
@@ -625,4 +632,87 @@ test('CLI reads the legacy configuration when migration fails', async () => {
   assert.equal(readFrom, '/fake/home/.legacy/config.json')
   assert.match(loggedText(calls), /Could not move old configuration/)
   assert.equal(calls.discoveredWorkspaces[0].root, WORKSPACE)
+})
+
+test('CLI --add-alias creates an alias without starting', async () => {
+  let created
+
+  const { dependencies, calls } = createDependencies({
+    aliases: {
+      addAlias: async name => {
+        created = name
+        return [path.join('/fake/bin', `${name}.cmd`)]
+      },
+    },
+  })
+
+  await createCli(dependencies).start(['--add-alias', 'dev'])
+
+  assert.equal(created, 'dev')
+  assert.match(loggedText(calls), /Created alias "dev"\. Run it with: dev/)
+  assert.ok(
+    loggedText(calls).includes(path.dirname(path.join('/fake/bin', 'dev.cmd'))),
+  )
+  assert.equal(calls.discoveredWorkspaces.length, 0)
+})
+
+test('CLI --remove-alias deletes an alias', async () => {
+  let removed
+
+  const { dependencies, calls } = createDependencies({
+    aliases: {
+      removeAlias: async name => {
+        removed = name
+        return []
+      },
+    },
+  })
+
+  await createCli(dependencies).start(['--remove-alias', 'dev'])
+
+  assert.equal(removed, 'dev')
+  assert.match(loggedText(calls), /Removed alias "dev"/)
+})
+
+test('CLI passes alias errors on to the caller', async () => {
+  const { dependencies } = createDependencies({
+    aliases: {
+      addAlias: async () => {
+        throw new Error('"ls" is already a command')
+      },
+    },
+  })
+
+  await assert.rejects(
+    createCli(dependencies).start(['--add-alias', 'ls']),
+    /already a command/,
+  )
+})
+
+test('CLI --list-aliases shows built-in and custom aliases', async () => {
+  const empty = createDependencies()
+
+  await createCli(empty.dependencies).start(['--list-aliases'])
+
+  assert.match(loggedText(empty.calls), /Built in: dev-workspace, dws/)
+  assert.match(loggedText(empty.calls), /Custom: +none/)
+
+  const custom = createDependencies({
+    aliases: { listAliases: async () => ['dev', 'ws'] },
+  })
+
+  await createCli(custom.dependencies).start(['--list-aliases'])
+
+  assert.match(loggedText(custom.calls), /Custom: +dev, ws/)
+})
+
+test('CLI --reset also deletes custom aliases', async () => {
+  const { dependencies, calls } = createDependencies({
+    aliases: { removeAllAliases: async () => ['dev'] },
+  })
+
+  await createCli(dependencies).start(['--reset'])
+
+  assert.match(loggedText(calls), /No saved configuration found/)
+  assert.match(loggedText(calls), /Deleted alias "dev"/)
 })
