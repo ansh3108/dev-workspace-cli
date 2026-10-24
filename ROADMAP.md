@@ -1,0 +1,222 @@
+# Roadmap to 1.0.0
+
+This document plans the path from the current version to a stable 1.0.0 release. Each milestone has a theme, a list of deliverables and the conditions that must be true before it ships.
+
+**Goal for 1.0.0:** the CLI should be the quickest way to reach and run any script in any JavaScript project on your machine. It must work with every major package manager and operating system, and offer a stable interface that users and scripts can rely on.
+
+## Principles
+
+These apply to every milestone:
+
+- **Zero setup for the common case.** Sensible defaults first; configuration is optional.
+- **Never surprise the user.** No silent data loss, and no prompts in non-interactive use. A failure always exits with a non-zero code.
+- **Keep it small.** Add a dependency only when it replaces substantial, tricky code (for example, terminal width or fuzzy matching).
+- **Every feature ships with tests and documentation.** Coverage stays at or above 90% of lines, and the README is updated in the same pull request.
+- **Cross-platform by default.** Every change is checked by CI on Windows, macOS and Linux with Node 20, 22 and 24.
+
+## Overview
+
+| Version | Theme                           | Highlights                                                                |
+| ------- | ------------------------------- | ------------------------------------------------------------------------- |
+| 0.2.0   | Interface refresh _(released)_  | New header, prompt formatting, screen clearing                            |
+| 0.3.0   | Foundations _(done)_            | Platform config location, CLI flags, change workspace, Ctrl+C fix         |
+| 0.4.0   | Works with every project        | Package manager detection, project filtering, lifecycle scripts           |
+| 0.5.0   | Fast navigation                 | Fuzzy search, recent items, direct mode, script arguments                 |
+| 0.6.0   | A polished interface            | Mouse support, correct layout, themes, project details, first run         |
+| 0.7.0   | Bigger workspaces               | Monorepos, nested projects, multiple named workspaces                     |
+| 0.8.0   | Configuration and scripts       | Versioned config schema, `config` command, JSON output                    |
+| 0.9.0   | Hardening and release candidate | Linting, type checks, end-to-end tests, interface freeze, feedback period |
+| 1.0.0   | Stable                          | Semver guarantees for flags, config and exit codes                        |
+
+---
+
+## 0.2.0 — Interface refresh _(released)_
+
+- [x] Boxed header showing the workspace and current section.
+- [x] Formatted project and script menus, with the script command shown as a description.
+- [x] The screen is cleared between menus.
+
+## 0.3.0 — Foundations _(done, not yet released)_
+
+- [x] Store the configuration in the platform's config directory, and move the legacy `~/.dev-workspace-cli` file automatically.
+- [x] `DEV_WORKSPACE_CONFIG` environment variable to override the config path.
+- [x] Flags: `--workspace`, `--config-path`, `--reset`, `--version`, `--help`.
+- [x] "Change workspace" entry in the project list.
+- [x] Pressing Ctrl+C in a running script returns to the menu instead of closing the CLI.
+- [x] Non-zero exit code when the workspace cannot be read.
+- [x] Prettier formatting enforced in `npm run check`.
+- [x] Built-in `dws` command, and custom aliases with `--add-alias`, `--remove-alias` and `--list-aliases`.
+
+## 0.4.0 — Works with every project
+
+The CLI currently assumes npm and lists every folder. This milestone makes it correct for real-world workspaces.
+
+### Package manager detection
+
+- [ ] Detect the package manager per project, in this order:
+  1. the `packageManager` field in `package.json` (for example, `pnpm@9.1.0`);
+  2. the lockfile: `pnpm-lock.yaml`, `yarn.lock`, `bun.lock` / `bun.lockb`, `package-lock.json`;
+  3. npm as the fallback.
+- [ ] Run scripts with the detected tool (`pnpm run`, `yarn run`, `bun run`, `npm run`).
+- [ ] Show which package manager will be used in the project screen.
+- [ ] When the detected tool is not installed, show an actionable error naming the tool and how to install it (for example, `corepack enable`).
+
+### Project filtering
+
+- [ ] Hide dot-folders (`.git`, `.vscode`, …) and `node_modules`.
+- [ ] Show folders without a `package.json` dimmed, at the end of the list, or hide them with a setting (see 0.8.0).
+- [ ] Sort projects case-insensitively.
+
+### Scripts
+
+- [ ] Group `pre*` and `post*` lifecycle scripts under their main script, so `pretest` is not listed as a separate entry.
+- [ ] Show the script command as the description, truncated to the terminal width.
+
+**Done when:** a workspace that mixes npm, pnpm, Yarn and Bun projects runs every script with the right tool on all three operating systems in CI.
+
+## 0.5.0 — Fast navigation
+
+The CLI should be faster than typing `cd` and `npm run`.
+
+- [ ] **Own list prompt:** replace Inquirer's `select` with a small list component that the CLI controls fully: rendering, scrolling, key handling and the row position of every item. It is the base for fuzzy search here and for mouse support in 0.6.0.
+- [ ] **Fuzzy search** in the project and script lists: typing filters the list (subsequence matching, best matches first) and Escape clears the filter.
+- [ ] **Recent items:** the five most recently used projects appear at the top of the list, and each project remembers its last script. Stored in a separate `state.json` next to the config, so clearing history never touches settings.
+- [ ] **Direct mode:** `dev-workspace <project> [script]` skips the menus.
+  - The project name is matched exactly first, then by unique prefix.
+  - Without a script, open that project's script menu.
+  - With a script, run it and exit with the script's exit code.
+- [ ] **Script arguments:** `dev-workspace web dev -- --port 4000` passes everything after `--` to the script. In the menu, a "Run with arguments…" option asks for them.
+- [ ] **Re-run:** after a script finishes, offer "Run again" as the default choice next to "Back".
+
+**Done when:** opening and running a known script takes one command, and finding any project in a 50-project workspace takes at most three keystrokes plus Enter.
+
+## 0.6.0 — A polished interface
+
+The CLI should look clean, and stay correct, in every terminal.
+
+### Mouse support
+
+Terminals can report mouse events as escape sequences (SGR mouse mode, `\x1b[?1000h` and `\x1b[?1006h`). Each click arrives on stdin with its row and column, which the list prompt from 0.5.0 maps to the item drawn there.
+
+- [ ] Click an item to select it; click the selected item again (or double-click) to open it.
+- [ ] Hover highlights the item under the pointer, in terminals that report motion.
+- [ ] The scroll wheel moves through long lists.
+- [ ] Clickable "Back" and "Exit" entries on every screen.
+- [ ] Mouse reporting is switched on only while a menu is shown. It is switched off before a script starts, and on every exit path: normal exit, Ctrl+C, errors and crashes. A terminal must never be left in mouse mode.
+- [ ] Turned off automatically in terminals that do not report mouse events. Users can also disable it with `--no-mouse` or a setting, because it replaces the terminal's normal text selection while a menu is open (Shift or Option + drag still selects text).
+- [ ] Keyboard navigation keeps working exactly as before; the mouse is an addition, never a requirement.
+
+**Terminal support**, checked with `node scripts/mouse-check.js` (clicks, hover and wheel):
+
+| Terminal                       | Result                      |
+| ------------------------------ | --------------------------- |
+| Classic Windows console        | Works: clicks, hover, wheel |
+| Windows Terminal               | Not recorded yet            |
+| VS Code integrated terminal    | Not recorded yet            |
+| macOS Terminal, iTerm2         | Not recorded yet            |
+| Linux (GNOME Terminal, others) | Not recorded yet            |
+
+The classic Windows console was the riskiest case, so mouse support is confirmed as feasible. The remaining terminals must be checked before 0.6.0 ships.
+
+### Layout and appearance
+
+- [ ] **Correct layout:** measure text by its terminal width (`string-width`) so emoji and wide characters never break the header border.
+- [ ] **Path truncation:** shorten long workspace paths in the middle (`C:/Users/…/projects/web`) instead of cutting off the end.
+- [ ] **Responsive width:** fit the header and descriptions to `process.stdout.columns`, with a minimum width of 40 columns.
+- [ ] **Compact header:** a one-line header by default after the first screen; the large header only on the main screen.
+- [ ] **Consistent theme:** apply one theme to every prompt, with all colours going through `color()` so `NO_COLOR` and non-TTY output are always respected. Support `FORCE_COLOR`.
+- [ ] **Project details:** show package manager, script count and Git branch (if any) next to each project, without slowing down the list (read lazily, cache per session).
+- [ ] **First-run experience:** suggest common folders that exist (`~/dev`, `~/projects`, `~/code`, `~/src`, `~/repos`) as choices, with "Enter another path" as the last option.
+- [ ] **Non-interactive guard:** when stdin is not a TTY and no direct-mode arguments are given, exit with a clear message instead of a prompt error.
+- [ ] **Coloured `--help`.**
+
+**Done when:** screenshots of the main screens look correct in Windows Terminal, PowerShell, macOS Terminal, iTerm2 and a Linux terminal, at 40 and 120 columns, with and without `NO_COLOR`.
+
+## 0.7.0 — Bigger workspaces
+
+- [ ] **Monorepos:** detect npm, Yarn and pnpm workspaces. A monorepo appears as one project with expandable packages; scripts run in the selected package.
+- [ ] **Nested discovery:** optional search depth (default 1, maximum 3) for workspaces organised in folders such as `clients/acme/web`. It must stop at any folder with a `package.json` and never enter `node_modules`.
+- [ ] **Multiple named workspaces:** save several workspaces (for example `work` and `personal`), switch between them from the menu, and choose one with `--workspace <name>`.
+
+**Done when:** a 200-project workspace with depth 2 lists in under 500 ms on a typical SSD, measured in a benchmark test.
+
+## 0.8.0 — Configuration and scripts
+
+- [ ] **Versioned config schema:** add a `"version"` field and migrate older files automatically, with a backup (`config.json.bak`) before any migration.
+- [ ] **Settings:** default package manager, hidden scripts (glob patterns), hidden folders, search depth, and whether to show non-Node folders.
+- [ ] **`config` command:** `dev-workspace config get|set|list|edit`, so users never have to edit JSON by hand. `edit` opens the file in `$EDITOR` / `%EDITOR%`.
+- [ ] **JSON output for automation:** `dev-workspace --list --json` prints projects and scripts as JSON and exits.
+- [ ] **Update notice:** at most once a day, after a run, mention when a newer version exists on npm. It must never delay startup, and can be disabled with `DEV_WORKSPACE_NO_UPDATE_CHECK=1` and in CI.
+
+**Done when:** every setting is documented, can be set via the `config` command, and is covered by migration tests from every earlier config format.
+
+## 0.9.0 — Hardening and release candidate
+
+No new features; this milestone makes the existing ones dependable, then freezes the public interface.
+
+### Hardening
+
+- [ ] **ESLint** with a recommended config, enforced in `npm run check`.
+- [ ] **Type checking:** JSDoc types and `tsc --noEmit --checkJs` in CI, without converting to TypeScript.
+- [ ] **End-to-end tests:** spawn the real binary on every operating system in CI, covering flags, direct mode, exit codes and non-TTY behaviour.
+- [ ] **Signal handling:** SIGINT and SIGTERM are forwarded correctly, and no child process is left behind when the terminal closes.
+- [ ] **Performance budget:** startup to first menu in under 150 ms, checked in CI.
+- [ ] **Release safety:**
+  - pin the npm version in the release workflow instead of `npm@latest`;
+  - run `npm run check` (not only `npm test`) before publishing;
+  - enforce Conventional Commits on pull requests (commitlint) so every change is classified for semantic-release;
+  - publish a `CHANGELOG.md` with `@semantic-release/changelog`.
+- [ ] **Contributor files:** `CONTRIBUTING.md`, issue and pull request templates.
+
+### Release candidate
+
+Once the hardening work is done and CI is green across the full matrix, with coverage at or above 90% and no open `bug` issues:
+
+- [ ] **Interface freeze:** list every public flag, environment variable, config key and exit code in the README, under a "Stability" section. No changes after this point without a deprecation period.
+- [ ] **Clean up legacy behaviour:** keep the 0.1.x config migration, but document it as the only supported upgrade path and drop any other compatibility code added during 0.x.
+- [ ] **Documentation:** animated demo (asciinema or GIF) at the top of the README, a full usage guide and a troubleshooting section.
+- [ ] **Feedback period:** publish under the `next` npm tag for at least two weeks and fix reported issues.
+
+**Done when:** two weeks pass without new bugs that would require changing the public interface.
+
+## 1.0.0 — Stable
+
+The 1.0.0 release promises, under semantic versioning, that these will not change without a major version:
+
+- command-line flags and their meaning;
+- environment variables;
+- config file keys and location (with automatic migration for any later change);
+- exit codes: `0` success, `1` CLI error, and the script's own exit code in direct mode;
+- JSON output format from `--list --json`.
+
+---
+
+## Release process notes
+
+- Releases are created by semantic-release from Conventional Commit messages: `fix:` makes a patch release and `feat:` a minor one.
+- The real version only exists in git tags and on npm. `package.json` keeps the placeholder `0.0.0-development`, and semantic-release writes the actual version into the package at publish time.
+- **Avoid `BREAKING CHANGE` footers and `!` commits before 1.0.0.** semantic-release turns any breaking change into a major release, which would publish 1.0.0 too early. Breaking changes during 0.x should be released as `feat:` and described in the release notes.
+- 1.0.0 itself is released by a commit marked as a breaking change once the 0.9.0 conditions are met.
+
+## Not planned before 1.0.0
+
+These ideas are out of scope until the core is stable:
+
+- support for languages other than JavaScript (Python, Rust, Make, …);
+- running several scripts in parallel or managing background processes;
+- a plugin system;
+- a graphical interface (see below).
+
+## After 1.0.0: a browser interface
+
+A terminal cannot draw real windows or buttons, so a full graphical interface would run in the browser: `dev-workspace --ui` starts a local server with Node's built-in `http` module and opens the page. It would show project cards, search, buttons to run scripts and their live output. It would use no Electron and need no new dependencies.
+
+A local server that runs commands can be attacked by any website open in the same browser, so these requirements are not optional:
+
+- listen on `127.0.0.1` only, on a random free port;
+- require a random token, generated per session and passed in the opened URL, on every request;
+- reject requests whose `Host` or `Origin` header is not the server's own address (protection against DNS rebinding and cross-site requests);
+- only run scripts that exist in a project's `package.json`, never arbitrary commands sent by the page;
+- stop the server when the CLI exits.
+
+Known limit: script output is streamed to the page, but scripts that ask for keyboard input will not work there. Dev servers, builds and tests are unaffected.
