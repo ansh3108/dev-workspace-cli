@@ -1,6 +1,8 @@
 # Roadmap to 1.0.0
 
-This document plans the path from the current version to a stable 1.0.0 release. Each milestone has a theme, a list of deliverables and the conditions that must be true before it ships.
+This document plans the path to a stable 1.0.0 release. Each milestone has a theme, a list of deliverables and the conditions that must be true before it is complete.
+
+Milestones are not tied to version numbers. Releases are published automatically as work lands (see [Release process notes](#release-process-notes)), so one milestone usually spans several releases. When a milestone is complete, its heading records the release that finished it.
 
 **Goal for 1.0.0:** the CLI should be the quickest way to reach and run any script in any JavaScript project on your machine. It must work with every major package manager and operating system, and offer a stable interface that users and scripts can rely on.
 
@@ -16,27 +18,29 @@ These apply to every milestone:
 
 ## Overview
 
-| Version | Theme                           | Highlights                                                                |
-| ------- | ------------------------------- | ------------------------------------------------------------------------- |
-| 0.2.0   | Interface refresh _(released)_  | New header, prompt formatting, screen clearing                            |
-| 0.3.0   | Foundations _(done)_            | Platform config location, CLI flags, change workspace, Ctrl+C fix         |
-| 0.4.0   | Works with every project        | Package manager detection, project filtering, lifecycle scripts           |
-| 0.5.0   | Fast navigation                 | Fuzzy search, recent items, direct mode, script arguments                 |
-| 0.6.0   | A polished interface            | Mouse support, correct layout, themes, project details, first run         |
-| 0.7.0   | Bigger workspaces               | Monorepos, nested projects, multiple named workspaces                     |
-| 0.8.0   | Configuration and scripts       | Versioned config schema, `config` command, JSON output                    |
-| 0.9.0   | Hardening and release candidate | Linting, type checks, end-to-end tests, interface freeze, feedback period |
-| 1.0.0   | Stable                          | Semver guarantees for flags, config and exit codes                        |
+| Milestone                       | Status            | Highlights                                                                |
+| ------------------------------- | ----------------- | ------------------------------------------------------------------------- |
+| Interface refresh               | Released in 0.2.0 | New header, prompt formatting, screen clearing                            |
+| Foundations                     | Released in 0.3.0 | Platform config location, CLI flags, aliases, Ctrl+C fix                  |
+| Works with every project        | In progress       | Package manager detection, project filtering, lifecycle scripts           |
+| Fast navigation                 | Planned           | Fuzzy search, recent items, direct mode, script arguments                 |
+| A polished interface            | Planned           | Mouse support, correct layout, themes, project details, first run         |
+| Bigger workspaces               | Planned           | Monorepos, nested projects, multiple named workspaces                     |
+| Configuration and scripts       | Planned           | Versioned config schema, `config` command, JSON output                    |
+| Hardening and release candidate | Planned           | Linting, type checks, end-to-end tests, interface freeze, feedback period |
+| Stable                          | Planned: 1.0.0    | Semver guarantees for flags, config and exit codes                        |
+
+Milestones are listed in their planned order. Work on a later milestone can start early when it unblocks something, but a milestone counts as complete only when all its items and its "Done when" condition are met.
 
 ---
 
-## 0.2.0 — Interface refresh _(released)_
+## Interface refresh _(released in 0.2.0)_
 
 - [x] Boxed header showing the workspace and current section.
 - [x] Formatted project and script menus, with the script command shown as a description.
 - [x] The screen is cleared between menus.
 
-## 0.3.0 — Foundations _(done, not yet released)_
+## Foundations _(released in 0.3.0)_
 
 - [x] Store the configuration in the platform's config directory, and move the legacy `~/.dev-workspace-cli` file automatically.
 - [x] `DEV_WORKSPACE_CONFIG` environment variable to override the config path.
@@ -47,24 +51,24 @@ These apply to every milestone:
 - [x] Prettier formatting enforced in `npm run check`.
 - [x] Built-in `dws` command, and custom aliases with `--add-alias`, `--remove-alias` and `--list-aliases`.
 
-## 0.4.0 — Works with every project
+## Works with every project _(in progress)_
 
 The CLI currently assumes npm and lists every folder. This milestone makes it correct for real-world workspaces.
 
 ### Package manager detection
 
-- [ ] Detect the package manager per project, in this order:
+- [x] Detect the package manager per project, in this order:
   1. the `packageManager` field in `package.json` (for example, `pnpm@9.1.0`);
   2. the lockfile: `pnpm-lock.yaml`, `yarn.lock`, `bun.lock` / `bun.lockb`, `package-lock.json`;
   3. npm as the fallback.
-- [ ] Run scripts with the detected tool (`pnpm run`, `yarn run`, `bun run`, `npm run`).
-- [ ] Show which package manager will be used in the project screen.
-- [ ] When the detected tool is not installed, show an actionable error naming the tool and how to install it (for example, `corepack enable`).
+- [x] Run scripts with the detected tool (`pnpm run`, `yarn run`, `bun run`, `npm run`).
+- [x] Show which package manager will be used in the project screen.
+- [x] When the detected tool is not installed, show an actionable error naming the tool and how to install it (for example, `corepack enable`).
 
 ### Project filtering
 
 - [ ] Hide dot-folders (`.git`, `.vscode`, …) and `node_modules`.
-- [ ] Show folders without a `package.json` dimmed, at the end of the list, or hide them with a setting (see 0.8.0).
+- [ ] Show folders without a `package.json` dimmed, at the end of the list, or hide them with a setting (see [Configuration and scripts](#configuration-and-scripts)).
 - [ ] Sort projects case-insensitively.
 
 ### Scripts
@@ -74,11 +78,11 @@ The CLI currently assumes npm and lists every folder. This milestone makes it co
 
 **Done when:** a workspace that mixes npm, pnpm, Yarn and Bun projects runs every script with the right tool on all three operating systems in CI.
 
-## 0.5.0 — Fast navigation
+## Fast navigation
 
 The CLI should be faster than typing `cd` and `npm run`.
 
-- [ ] **Own list prompt:** replace Inquirer's `select` with a small list component that the CLI controls fully: rendering, scrolling, key handling and the row position of every item. It is the base for fuzzy search here and for mouse support in 0.6.0.
+- [ ] **Own list prompt:** replace Inquirer's `select` with a small list component that the CLI controls fully: rendering, scrolling, key handling and the row position of every item. It is the base for fuzzy search here and for mouse support in [A polished interface](#a-polished-interface).
 - [ ] **Fuzzy search** in the project and script lists: typing filters the list (subsequence matching, best matches first) and Escape clears the filter.
 - [ ] **Recent items:** the five most recently used projects appear at the top of the list, and each project remembers its last script. Stored in a separate `state.json` next to the config, so clearing history never touches settings.
 - [ ] **Direct mode:** `dev-workspace <project> [script]` skips the menus.
@@ -90,13 +94,13 @@ The CLI should be faster than typing `cd` and `npm run`.
 
 **Done when:** opening and running a known script takes one command, and finding any project in a 50-project workspace takes at most three keystrokes plus Enter.
 
-## 0.6.0 — A polished interface
+## A polished interface
 
 The CLI should look clean, and stay correct, in every terminal.
 
 ### Mouse support
 
-Terminals can report mouse events as escape sequences (SGR mouse mode, `\x1b[?1000h` and `\x1b[?1006h`). Each click arrives on stdin with its row and column, which the list prompt from 0.5.0 maps to the item drawn there.
+Terminals can report mouse events as escape sequences (SGR mouse mode, `\x1b[?1000h` and `\x1b[?1006h`). Each click arrives on stdin with its row and column, which the list prompt from [Fast navigation](#fast-navigation) maps to the item drawn there.
 
 - [ ] Click an item to select it; click the selected item again (or double-click) to open it.
 - [ ] Hover highlights the item under the pointer, in terminals that report motion.
@@ -116,7 +120,7 @@ Terminals can report mouse events as escape sequences (SGR mouse mode, `\x1b[?10
 | macOS Terminal, iTerm2         | Not recorded yet            |
 | Linux (GNOME Terminal, others) | Not recorded yet            |
 
-The classic Windows console was the riskiest case, so mouse support is confirmed as feasible. The remaining terminals must be checked before 0.6.0 ships.
+The classic Windows console was the riskiest case, so mouse support is confirmed as feasible. The remaining terminals must be checked before this milestone is complete.
 
 ### Layout and appearance
 
@@ -132,7 +136,7 @@ The classic Windows console was the riskiest case, so mouse support is confirmed
 
 **Done when:** screenshots of the main screens look correct in Windows Terminal, PowerShell, macOS Terminal, iTerm2 and a Linux terminal, at 40 and 120 columns, with and without `NO_COLOR`.
 
-## 0.7.0 — Bigger workspaces
+## Bigger workspaces
 
 - [ ] **Monorepos:** detect npm, Yarn and pnpm workspaces. A monorepo appears as one project with expandable packages; scripts run in the selected package.
 - [ ] **Nested discovery:** optional search depth (default 1, maximum 3) for workspaces organised in folders such as `clients/acme/web`. It must stop at any folder with a `package.json` and never enter `node_modules`.
@@ -140,7 +144,7 @@ The classic Windows console was the riskiest case, so mouse support is confirmed
 
 **Done when:** a 200-project workspace with depth 2 lists in under 500 ms on a typical SSD, measured in a benchmark test.
 
-## 0.8.0 — Configuration and scripts
+## Configuration and scripts
 
 - [ ] **Versioned config schema:** add a `"version"` field and migrate older files automatically, with a backup (`config.json.bak`) before any migration.
 - [ ] **Settings:** default package manager, hidden scripts (glob patterns), hidden folders, search depth, and whether to show non-Node folders.
@@ -150,7 +154,7 @@ The classic Windows console was the riskiest case, so mouse support is confirmed
 
 **Done when:** every setting is documented, can be set via the `config` command, and is covered by migration tests from every earlier config format.
 
-## 0.9.0 — Hardening and release candidate
+## Hardening and release candidate
 
 No new features; this milestone makes the existing ones dependable, then freezes the public interface.
 
@@ -180,7 +184,7 @@ Once the hardening work is done and CI is green across the full matrix, with cov
 
 **Done when:** two weeks pass without new bugs that would require changing the public interface.
 
-## 1.0.0 — Stable
+## Stable: 1.0.0
 
 The 1.0.0 release promises, under semantic versioning, that these will not change without a major version:
 
@@ -194,10 +198,11 @@ The 1.0.0 release promises, under semantic versioning, that these will not chang
 
 ## Release process notes
 
-- Releases are created by semantic-release from Conventional Commit messages: `fix:` makes a patch release and `feat:` a minor one.
+- Releases are created automatically by semantic-release when CI passes on `main`, from Conventional Commit messages: `fix:` makes a patch release and `feat:` a minor one. Versions keep counting past 0.9 (0.10.0, 0.11.0, …) until 1.0.0; semantic versioning has no upper limit.
+- Because every feature is released on its own, version numbers are not predicted in this document. A milestone's heading records the release that completed it.
 - The real version only exists in git tags and on npm. `package.json` keeps the placeholder `0.0.0-development`, and semantic-release writes the actual version into the package at publish time.
-- **Avoid `BREAKING CHANGE` footers and `!` commits before 1.0.0.** semantic-release turns any breaking change into a major release, which would publish 1.0.0 too early. Breaking changes during 0.x should be released as `feat:` and described in the release notes.
-- 1.0.0 itself is released by a commit marked as a breaking change once the 0.9.0 conditions are met.
+- **Avoid `BREAKING CHANGE` footers and `!` commits before 1.0.0.** semantic-release turns any breaking change into a major release, which would publish 1.0.0 too early. Breaking changes before 1.0.0 should be released as `feat:` and described in the release notes.
+- 1.0.0 itself is released by a commit marked as a breaking change once the "Hardening and release candidate" milestone is complete.
 
 ## Not planned before 1.0.0
 
