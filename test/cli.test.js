@@ -1,14 +1,17 @@
+import { createRequire } from 'node:module'
 import path from 'node:path'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { createCli } from '../lib/cli.js'
+import { CHANGE_WORKSPACE } from '../lib/prompts.js'
+
+const { version } = createRequire(import.meta.url)('../package.json')
 
 const WORKSPACE = path.resolve('fake/workspace')
 
 function createDependencies(overrides = {}) {
   const calls = {
-    savedConfig: [],
     savedWorkspaces: [],
     discoveredWorkspaces: [],
     errors: [],
@@ -20,8 +23,11 @@ function createDependencies(overrides = {}) {
       getConfigPaths: () => ({
         directory: '/fake/home/.dev-workspace-cli',
         file: '/fake/home/.dev-workspace-cli/config.json',
+        legacyFile: '/fake/home/.legacy/config.json',
       }),
+      migrateLegacyConfig: async () => null,
       readWorkspaceConfig: async () => WORKSPACE,
+      resetWorkspaceConfig: async () => [],
       saveWorkspaceConfig: async (workspace, file) => {
         calls.savedWorkspaces.push({ workspace, file })
       },
@@ -29,8 +35,8 @@ function createDependencies(overrides = {}) {
 
     workspace: {
       isDirectory: async () => true,
-      getProjects: async (root, cliDirectory) => {
-        calls.discoveredWorkspaces.push({ root, cliDirectory })
+      getProjects: async root => {
+        calls.discoveredWorkspaces.push({ root })
         return []
       },
       getScripts: async () => [],
@@ -50,6 +56,7 @@ function createDependencies(overrides = {}) {
     },
 
     ui: {
+      clearScreen: () => undefined,
       color: value => String(value),
       printHeader: () => undefined,
     },
@@ -110,31 +117,29 @@ test('CLI does not continue when the user declines workspace recovery', async ()
 
   const cli = createCli(dependencies)
 
-  await assert.rejects(
-    cli.run(),
-    /A valid workspace is required to continue/,
-  )
+  await assert.rejects(cli.run(), /A valid workspace is required to continue/)
 
   assert.equal(calls.discoveredWorkspaces.length, 0)
   assert.equal(calls.savedWorkspaces.length, 0)
 })
 
-test('CLI reports workspace discovery errors without crashing', async () => {
-  const { dependencies, calls } = createDependencies({
+test('CLI fails with a workspace error when discovery fails', async () => {
+  const originalError = new Error('Permission denied')
+  const { dependencies } = createDependencies({
     workspace: {
       getProjects: async () => {
-        throw new Error('Permission denied')
+        throw originalError
       },
     },
   })
 
   const cli = createCli(dependencies)
 
-  await cli.run()
-
-  assert.equal(calls.errors.length, 1)
-  assert.match(calls.errors[0][0], /Could not read workspace/)
-  assert.match(calls.errors[0][0], /Permission denied/)
+  await assert.rejects(cli.run(), error => {
+    assert.match(error.message, /Could not read workspace: Permission denied/)
+    assert.equal(error.cause, originalError)
+    return true
+  })
 })
 
 test('CLI exits cleanly when the project list is empty', async () => {
@@ -145,15 +150,16 @@ test('CLI exits cleanly when the project list is empty', async () => {
 
   assert.equal(calls.discoveredWorkspaces.length, 1)
   assert.ok(
-    calls.logs.some(args => args.join(' ').includes('No project folders found')),
+    calls.logs.some(args =>
+      args.join(' ').includes('No project folders found'),
+    ),
   )
 })
 
 test('CLI treats prompt cancellation as a normal exit', async () => {
-  const cancellation = Object.assign(
-    new Error('Prompt cancelled'),
-    { name: 'ExitPromptError' },
-  )
+  const cancellation = Object.assign(new Error('Prompt cancelled'), {
+    name: 'ExitPromptError',
+  })
 
   const { dependencies, calls } = createDependencies({
     prompts: {
@@ -172,11 +178,8 @@ test('CLI treats prompt cancellation as a normal exit', async () => {
 
   await assert.doesNotReject(cli.start())
 
-  assert.ok(
-    calls.logs.some(args => args.join(' ').includes('Goodbye!')),
-  )
+  assert.ok(calls.logs.some(args => args.join(' ').includes('Goodbye!')))
 })
-
 
 test('CLI opens a project and returns to the project list', async () => {
   const project = {
@@ -230,9 +233,7 @@ test('CLI handles a project with no npm scripts', async () => {
   await createCli(dependencies).run()
 
   assert.ok(
-    calls.logs.some(args =>
-      args.join(' ').includes('No npm scripts found'),
-    ),
+    calls.logs.some(args => args.join(' ').includes('No npm scripts found')),
   )
 })
 
@@ -377,9 +378,7 @@ test('CLI handles errors while reading a project package.json', async () => {
     ),
   )
   assert.ok(
-    calls.errors.some(args =>
-      args.join(' ').includes('Invalid package JSON'),
-    ),
+    calls.errors.some(args => args.join(' ').includes('Invalid package JSON')),
   )
 })
 
@@ -420,10 +419,9 @@ test('CLI handles errors when starting a command', async () => {
 })
 
 test('CLI treats prompt abortion as a normal exit', async () => {
-  const abortion = Object.assign(
-    new Error('Prompt aborted'),
-    { name: 'AbortPromptError' },
-  )
+  const abortion = Object.assign(new Error('Prompt aborted'), {
+    name: 'AbortPromptError',
+  })
 
   const { dependencies, calls } = createDependencies({
     prompts: {
@@ -438,15 +436,9 @@ test('CLI treats prompt abortion as a normal exit', async () => {
     },
   })
 
-  await assert.doesNotReject(
-    createCli(dependencies).start(),
-  )
+  await assert.doesNotReject(createCli(dependencies).start())
 
-  assert.ok(
-    calls.logs.some(args =>
-      args.join(' ').includes('Goodbye!'),
-    ),
-  )
+  assert.ok(calls.logs.some(args => args.join(' ').includes('Goodbye!')))
 })
 
 test('CLI propagates unexpected errors', async () => {
@@ -458,8 +450,179 @@ test('CLI propagates unexpected errors', async () => {
     },
   })
 
-  await assert.rejects(
-    createCli(dependencies).start(),
-    /Unexpected UI failure/,
+  await assert.rejects(createCli(dependencies).start(), /Unexpected UI failure/)
+})
+
+function loggedText(calls) {
+  return calls.logs.map(args => args.join(' ')).join('\n')
+}
+
+test('CLI lets the user change the workspace from the project list', async () => {
+  const otherWorkspace = path.resolve('fake/other')
+  const choices = [CHANGE_WORKSPACE, null]
+
+  const { dependencies, calls } = createDependencies({
+    prompts: {
+      chooseProject: async () => choices.shift(),
+      askForWorkspace: async () => otherWorkspace,
+    },
+  })
+
+  await createCli(dependencies).run()
+
+  assert.deepEqual(calls.savedWorkspaces, [
+    {
+      workspace: otherWorkspace,
+      file: '/fake/home/.dev-workspace-cli/config.json',
+    },
+  ])
+  assert.deepEqual(
+    calls.discoveredWorkspaces.map(call => call.root),
+    [WORKSPACE, otherWorkspace],
   )
+})
+
+test('CLI offers a workspace change when the project list is empty', async () => {
+  let offeredProjects
+
+  const { dependencies } = createDependencies({
+    prompts: {
+      chooseProject: async projects => {
+        offeredProjects = projects
+        return null
+      },
+    },
+  })
+
+  await createCli(dependencies).run()
+
+  assert.deepEqual(offeredProjects, [])
+})
+
+test('CLI saves the workspace passed with --workspace', async () => {
+  const otherWorkspace = path.resolve('fake/other')
+  let configRead = false
+
+  const { dependencies, calls } = createDependencies({
+    config: {
+      readWorkspaceConfig: async () => {
+        configRead = true
+        return WORKSPACE
+      },
+    },
+  })
+
+  await createCli(dependencies).start(['--workspace', 'fake/other'])
+
+  assert.equal(configRead, false)
+  assert.equal(calls.savedWorkspaces[0].workspace, otherWorkspace)
+  assert.equal(calls.discoveredWorkspaces[0].root, otherWorkspace)
+})
+
+test('CLI rejects a missing --workspace directory', async () => {
+  const { dependencies, calls } = createDependencies({
+    workspace: { isDirectory: async () => false },
+  })
+
+  await assert.rejects(
+    createCli(dependencies).start(['-w', 'missing']),
+    /Invalid workspace "missing": That directory does not exist/,
+  )
+  assert.equal(calls.savedWorkspaces.length, 0)
+})
+
+test('CLI prints help, version and config path without starting', async () => {
+  const cases = [
+    [['--help'], /Usage: dev-workspace/],
+    [['-v'], new RegExp(`^${version.replaceAll('.', '\.')}$`)],
+    [['--config-path'], /^\/fake\/home\/\.dev-workspace-cli\/config\.json$/],
+  ]
+
+  for (const [args, expected] of cases) {
+    const { dependencies, calls } = createDependencies()
+
+    await createCli(dependencies).start(args)
+
+    assert.match(loggedText(calls), expected)
+    assert.equal(calls.discoveredWorkspaces.length, 0)
+  }
+})
+
+test('CLI rejects unknown options with a pointer to --help', async () => {
+  const { dependencies } = createDependencies()
+
+  await assert.rejects(
+    createCli(dependencies).start(['--nope']),
+    /Unknown option '--nope'[\s\S]*dev-workspace --help/,
+  )
+})
+
+test('CLI --reset deletes the current and legacy configuration', async () => {
+  let requested
+
+  const { dependencies, calls } = createDependencies({
+    config: {
+      resetWorkspaceConfig: async files => {
+        requested = files
+        return ['/fake/home/.legacy/config.json']
+      },
+    },
+  })
+
+  await createCli(dependencies).start(['--reset'])
+
+  assert.deepEqual(requested, [
+    '/fake/home/.dev-workspace-cli/config.json',
+    '/fake/home/.legacy/config.json',
+  ])
+  assert.match(
+    loggedText(calls),
+    /Deleted \/fake\/home\/\.legacy\/config\.json/,
+  )
+  assert.equal(calls.discoveredWorkspaces.length, 0)
+})
+
+test('CLI --reset reports when there is nothing to delete', async () => {
+  const { dependencies, calls } = createDependencies()
+
+  await createCli(dependencies).start(['--reset'])
+
+  assert.match(loggedText(calls), /No saved configuration found/)
+})
+
+test('CLI reports a migrated legacy configuration', async () => {
+  const { dependencies, calls } = createDependencies({
+    config: {
+      migrateLegacyConfig: async () => '/fake/home/.legacy/config.json',
+    },
+  })
+
+  await createCli(dependencies).run()
+
+  assert.match(
+    loggedText(calls),
+    /Moved configuration from \/fake\/home\/\.legacy\/config\.json/,
+  )
+})
+
+test('CLI reads the legacy configuration when migration fails', async () => {
+  let readFrom
+
+  const { dependencies, calls } = createDependencies({
+    config: {
+      migrateLegacyConfig: async () => {
+        throw new Error('Permission denied')
+      },
+      readWorkspaceConfig: async file => {
+        readFrom = file
+        return WORKSPACE
+      },
+    },
+  })
+
+  await createCli(dependencies).run()
+
+  assert.equal(readFrom, '/fake/home/.legacy/config.json')
+  assert.match(loggedText(calls), /Could not move old configuration/)
+  assert.equal(calls.discoveredWorkspaces[0].root, WORKSPACE)
 })

@@ -68,19 +68,46 @@ will expose `dev`, `build`, and `test` in the project menu.
 
 Scripts are executed through npm from the selected project's directory, so relative paths and project-local dependencies resolve in the appropriate context.
 
-## Workspace configuration
+To switch to another workspace later, choose **Change workspace** in the project list, or start the CLI with `--workspace <path>`.
 
-Your workspace path is saved in your user home directory:
+## Options
 
 ```text
-~/.dev-workspace-cli/config.json
+dev-workspace [options]
+
+  -w, --workspace <path>  Use <path> as the workspace and save it
+      --config-path       Print the configuration file location
+      --reset             Delete the saved configuration
+  -v, --version           Print the version
+  -h, --help              Show this help
 ```
 
-On Windows, this resolves to a file under your user profile directory.
+## Workspace configuration
 
-The configuration is separate from the package installation, so reinstalling or updating the CLI does not normally overwrite your workspace preference.
+Your workspace path is saved in your operating system's standard location for user configuration:
+
+| Platform | Location                                                                                                 |
+| -------- | -------------------------------------------------------------------------------------------------------- |
+| Linux    | `$XDG_CONFIG_HOME/dev-workspace-cli/config.json` (defaults to `~/.config/dev-workspace-cli/config.json`) |
+| macOS    | `~/Library/Preferences/dev-workspace-cli/config.json`                                                    |
+| Windows  | `%APPDATA%\dev-workspace-cli\config.json`                                                                |
+
+Run `dev-workspace --config-path` to print the exact path on your machine. To use a different file, set the `DEV_WORKSPACE_CONFIG` environment variable to its path.
+
+The configuration is stored separately from the package, so updating, reinstalling, or uninstalling the CLI keeps your workspace preference.
+
+Versions 0.1.x stored the configuration in `~/.dev-workspace-cli/config.json`. If that file exists, the CLI moves it to the new location automatically on the next launch.
 
 If the saved workspace is no longer accessible, the CLI offers to configure another one.
+
+## Uninstalling
+
+Because the configuration outlives the package, delete it before uninstalling if you want to remove every trace of the CLI:
+
+```bash
+dev-workspace --reset
+npm uninstall --global @modulane/dev-workspace-cli
+```
 
 ## Development
 
