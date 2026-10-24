@@ -185,6 +185,8 @@ Releases are automatic. When CI passes for a push to `main`, the Release workflo
 
 It then publishes the package to npm, creates the git tag and a GitHub release with generated notes. The version in `package.json` stays `0.0.0-development`; the real version only exists in git tags and on npm.
 
+The new version can take up to about ten minutes to appear on npm after the workflow finishes, because npm processes packages published with provenance in the background. The git tag and the GitHub release appear immediately.
+
 The workflow can also be started by hand from the Actions tab.
 
 ## Limitations
