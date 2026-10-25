@@ -30,11 +30,30 @@ test('getProjects lists immediate folders alphabetically', async () => {
     await mkdir(path.join(directory, 'alpha'))
     await writeFile(path.join(directory, 'notes.txt'), 'Not a project')
 
-    const projects = await getProjects(directory, path.join(directory, 'cli'))
+    const projects = await getProjects(directory)
 
     assert.deepEqual(
       projects.map(project => project.name),
       ['alpha', 'zeta'],
+    )
+  })
+})
+
+test('getProjects leaves out folders that are never projects', async () => {
+  await withTempDirectory(async directory => {
+    for (const name of ['.git', '.vscode', '.idea', 'node_modules', 'web']) {
+      await mkdir(path.join(directory, name))
+    }
+
+    // Names that only contain a dot or "node_modules" are still projects.
+    await mkdir(path.join(directory, 'my.app'))
+    await mkdir(path.join(directory, 'node_modules-tools'))
+
+    const projects = await getProjects(directory)
+
+    assert.deepEqual(
+      projects.map(project => project.name),
+      ['my.app', 'node_modules-tools', 'web'],
     )
   })
 })
@@ -127,5 +146,79 @@ test('getProjects rejects a missing workspace', async () => {
     await assert.rejects(
       getProjects(path.join(directory, 'missing'), directory),
     )
+  })
+})
+
+test('getProjects lists folders without a package.json last', async () => {
+  await withTempDirectory(async directory => {
+    for (const name of ['notes', 'web', 'archive', 'api']) {
+      await mkdir(path.join(directory, name))
+    }
+
+    await writeFile(path.join(directory, 'web', 'package.json'), '{}')
+    await writeFile(path.join(directory, 'api', 'package.json'), '{}')
+
+    // A folder named package.json does not count.
+    await mkdir(path.join(directory, 'archive', 'package.json'))
+
+    const projects = await getProjects(directory)
+
+    assert.deepEqual(
+      projects.map(({ name, hasPackageJson }) => [name, hasPackageJson]),
+      [
+        ['api', true],
+        ['web', true],
+        ['archive', false],
+        ['notes', false],
+      ],
+    )
+  })
+})
+
+test('getProjects sorts names ignoring case and by number', async () => {
+  await withTempDirectory(async directory => {
+    for (const name of ['beta', 'App10', 'app2', 'Alpha']) {
+      await mkdir(path.join(directory, name))
+    }
+
+    const projects = await getProjects(directory)
+
+    assert.deepEqual(
+      projects.map(project => project.name),
+      ['Alpha', 'app2', 'App10', 'beta'],
+    )
+  })
+})
+
+test('getScripts attaches pre and post hooks to their main script', async () => {
+  await withTempDirectory(async directory => {
+    await writeFile(
+      path.join(directory, 'package.json'),
+      JSON.stringify({
+        scripts: {
+          prebuild: 'node clean.js',
+          build: 'node build.js',
+          postbuild: 'node report.js',
+          pretest: 'node lint.js',
+          test: 'node --test',
+          // No "install" or "view" script: these stay ordinary entries.
+          postinstall: 'node setup.js',
+          preview: 'node serve.js',
+          pre: 'node odd.js',
+        },
+      }),
+    )
+
+    assert.deepEqual(await getScripts(directory), [
+      {
+        name: 'build',
+        command: 'node build.js',
+        hooks: ['prebuild', 'postbuild'],
+      },
+      { name: 'test', command: 'node --test', hooks: ['pretest'] },
+      { name: 'postinstall', command: 'node setup.js' },
+      { name: 'preview', command: 'node serve.js' },
+      { name: 'pre', command: 'node odd.js' },
+    ])
   })
 })

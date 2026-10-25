@@ -193,3 +193,72 @@ test('chooseProject returns the selected project object', async () => {
 
   assert.equal(await prompts.chooseProject([project]), project)
 })
+
+test('chooseProject disables folders without a package.json', async () => {
+  const projects = [
+    { name: 'web', directory: '/projects/web', hasPackageJson: true },
+    { name: 'notes', directory: '/projects/notes', hasPackageJson: false },
+  ]
+  const { calls, prompts } = createPromptMocks({ select: null })
+
+  await prompts.chooseProject(projects)
+
+  assert.deepEqual(calls.select[0].choices.slice(0, 2), [
+    { name: '📁  web', value: projects[0] },
+    { name: '📁  notes', value: projects[1], disabled: '(no package.json)' },
+  ])
+})
+
+test('chooseScript fits the command to the terminal width', async () => {
+  const calls = []
+  const select = async options => {
+    calls.push(options)
+    return null
+  }
+  const long = `node ${'x'.repeat(200)}.js`
+
+  for (const [columns, expectedLength] of [
+    [40, 38],
+    [120, 118],
+    [undefined, 78],
+    [5, 20],
+  ]) {
+    calls.length = 0
+
+    await createPrompts({ select, columns: () => columns }).chooseScript([
+      { name: 'build', command: long },
+    ])
+
+    const { description } = calls[0].choices[0]
+
+    assert.equal(description.length, expectedLength, String(columns))
+    assert.ok(description.endsWith('…'))
+  }
+
+  calls.length = 0
+  await createPrompts({ select, columns: () => 40 }).chooseScript([
+    { name: 'dev', command: 'node server.js' },
+  ])
+  assert.equal(calls[0].choices[0].description, 'node server.js')
+})
+
+test('chooseScript keeps the hooks note when shortening the command', async () => {
+  const calls = []
+  const select = async options => {
+    calls.push(options)
+    return null
+  }
+
+  await createPrompts({ select, columns: () => 50 }).chooseScript([
+    {
+      name: 'build',
+      command: `node ${'x'.repeat(100)}.js`,
+      hooks: ['prebuild', 'postbuild'],
+    },
+  ])
+
+  const { description } = calls[0].choices[0]
+
+  assert.equal(description.length, 48)
+  assert.ok(description.endsWith('…  (+ prebuild, postbuild)'), description)
+})
