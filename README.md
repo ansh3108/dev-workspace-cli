@@ -1,6 +1,6 @@
 # Dev Workspace CLI
 
-[![CI](https://github.com/modulane/dev-workspace-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/modulane/dev-workspace-cli/actions/workflows/ci.yml)
+[![CI](https://github.com/modulane/dev-workspace-cli/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/modulane/dev-workspace-cli/actions/workflows/release.yml)
 ![Coverage](https://modulane.github.io/dev-workspace-cli/coverage.svg)
 [![npm version](https://img.shields.io/npm/v/@modulane/dev-workspace-cli)](https://www.npmjs.com/package/@modulane/dev-workspace-cli)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -31,7 +31,7 @@ Dev Workspace CLI detects each project's package manager (npm, pnpm, Yarn or Bun
 - **Stays out of the way:** scripts run in the project folder with full terminal output. Pressing Ctrl+C stops the script and brings you back to the menu.
 - **Short commands:** start it with `dev-workspace`, `dws`, or an alias of your choice.
 - **Remembers your workspace:** the configuration is stored in your user profile and survives updates and reinstalls.
-- **Cross-platform:** tested on Windows, macOS and Linux with Node.js 20, 22 and 24.
+- **Cross-platform:** tested on Windows, macOS and Linux with Node.js 20, 22, 24 and 26.
 
 ## Installation
 
