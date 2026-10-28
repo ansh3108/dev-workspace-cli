@@ -4,7 +4,7 @@ Thank you for helping improve Dev Workspace CLI. This guide covers the developme
 
 ## Development setup
 
-Requirements: Node.js 20.17, 22.13 or 23.5 and later (the versions the dependencies support), and npm.
+Requirements: Node.js 22.13 or 23.5 and later (the versions the dependencies support), and npm.
 
 ```bash
 git clone https://github.com/modulane/dev-workspace-cli.git
@@ -20,12 +20,13 @@ npm install
 | `npm run format`   | Format every file with Prettier                             |
 | `npm run check`    | Check formatting and run the tests, as CI does              |
 
-Some tests run a real script with each supported package manager. Package managers that are not installed are skipped locally; CI installs all of them and sets `REQUIRE_ALL_PACKAGE_MANAGERS=1` so none is skipped there. These tests also check whether each tool runs `pre`/`post` hooks. Yarn 2+, which does not, is tested with the `@yarnpkg/cli-dist` devDependency: the installed `yarn` (Yarn 1 is enough) hands over to it through `yarnPath`, so Corepack is not needed.
+Some tests run a real script with each supported package manager. Package managers that are not installed are skipped locally; CI installs all of them and sets `REQUIRE_ALL_PACKAGE_MANAGERS=1` so none is skipped there. These tests also check whether each tool runs `pre`/`post` hooks, and that script arguments reach the script unchanged. Yarn 2+, which does not run hooks, is tested with the `@yarnpkg/cli-dist` devDependency: the installed `yarn` (Yarn 1 is enough) hands over to it through `yarnPath`, so Corepack is not needed.
 
-When testing the real command by hand, point it at a temporary configuration so your own settings are not changed:
+When testing the real command by hand, point it at a temporary configuration so your own settings are not changed. The history (`state.json`) is written next to it, so give it a folder of its own:
 
 ```bash
-DEV_WORKSPACE_CONFIG=/tmp/dws-test.json npm start
+DEV_WORKSPACE_CONFIG=/tmp/dws-test/config.json npm start
+DEV_WORKSPACE_CONFIG=/tmp/dws-test/config.json npm start -- web dev
 ```
 
 ## Code layout
@@ -34,16 +35,21 @@ DEV_WORKSPACE_CONFIG=/tmp/dws-test.json npm start
 
 | File                  | Responsibility                                                 |
 | --------------------- | -------------------------------------------------------------- |
-| `cli.js`              | Option handling, workspace setup and the interactive menus     |
-| `args.js`             | Command-line parsing and the `--help` text                     |
+| `cli.js`              | Option handling, workspace setup, menus and direct mode        |
+| `args.js`             | Command-line parsing, the `--help` text, splitting arguments   |
 | `config.js`           | Configuration file location, reading, writing and migration    |
+| `state.js`            | The history of recent projects and last scripts (`state.json`) |
 | `workspace.js`        | Listing projects, reading their scripts, resolving typed paths |
 | `package-managers.js` | Detecting each project's package manager                       |
 | `commands.js`         | Running a script with that package manager                     |
 | `json.js`             | Parsing JSON files, ignoring a leading byte order mark         |
 | `aliases.js`          | Creating, listing and removing custom aliases                  |
-| `prompts.js`          | Questions and menus, built on `@inquirer/prompts`              |
+| `prompts.js`          | The questions and menus shown by `cli.js`                      |
+| `list.js`             | The list used by every menu: keys, drawing, search             |
+| `fuzzy.js`            | Fuzzy matching and ranking for the list search                 |
 | `ui.js`               | Colours, the header and screen clearing                        |
+
+Menus use the list in `list.js`, which owns the terminal while it is open; free-text and yes/no questions still use `@inquirer/prompts`. Test the list through `createList()` with fake input and output streams, as `test/list.test.js` does, rather than in a real terminal.
 
 Each file in `lib/` starts with a comment describing what it contains and how it is used. Keep that comment accurate when you change the file.
 
@@ -55,7 +61,7 @@ Every change is made on a short-lived branch and reaches `main` through a pull r
 
 1. Create a branch named after the change: `feat/project-search`, `fix/ctrl-c`, `docs/readme`, …
 2. Commit and push as often as needed. Nothing is released from a branch.
-3. Open a pull request. CI runs the test matrix (Windows, macOS and Linux with Node.js 20, 22, 24 and 26), and a check verifies that the title follows [Conventional Commits](https://www.conventionalcommits.org/). Pull requests that change `.github/` are also audited by [zizmor](https://docs.zizmor.sh/). A final **CI passed** job succeeds only when every test and coverage job has passed. It and the title check are the checks that must pass before a pull request can be merged, so changing the test matrix never requires changing the repository rules.
+3. Open a pull request. CI runs the test matrix (Windows, macOS and Linux with Node.js 22, 24 and 26), and a check verifies that the title follows [Conventional Commits](https://www.conventionalcommits.org/). Pull requests that change `.github/` are also audited by [zizmor](https://docs.zizmor.sh/). A final **CI passed** job succeeds only when every test and coverage job has passed. It and the title check are the checks that must pass before a pull request can be merged, so changing the test matrix never requires changing the repository rules.
 4. Squash-merge it. The pull request title becomes the only commit on `main`.
 
 The pull request title decides what is released, so choose its type carefully:
